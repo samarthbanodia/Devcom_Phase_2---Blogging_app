@@ -17,10 +17,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path
 from auth_mine.views import *
+from blog.views import blog_list, blog_detail
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/signup/', signup),
     path("api/login/",login),
-    path('api/checkauth/',check_auth)
+    path('api/checkauth/',check_auth),
+    path('api/blogs/', blog_list),
+    path('api/blogs/<int:pk>/', blog_detail),
 ]
