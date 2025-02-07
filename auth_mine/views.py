@@ -6,6 +6,7 @@ from django.http import HttpResponse
 from django.shortcuts import redirect
 import jwt, datetime
 from django.http import HttpRequest
+import json
 
 SECRET_KEY = 'secret_key' #change it to something better for more security 
 
@@ -13,9 +14,10 @@ SECRET_KEY = 'secret_key' #change it to something better for more security
 @csrf_exempt
 def signup(request):
     if request.method == "POST":
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
+        data = json.loads(request.body)  # Load JSON data
+        username = data.get('username')
+        email = data.get('email')
+        password = data.get('password')
         if User.objects.filter(username = username).exists():
             return JsonResponse({"error":"username should be unique"})
         if User.objects.filter(email = email).exists():
@@ -26,29 +28,29 @@ def signup(request):
         return JsonResponse({"message":"success"})
 
 @csrf_exempt
-def login(request:HttpRequest):
+def login(request: HttpRequest):
     if request.method == "POST":
-        username = request.POST.get("username")
-        password = request.POST.get("password")
-        if User.objects.filter(username = username).exists():
+        data = json.loads(request.body)  # Load JSON data
+        username = data.get("username")
+        password = data.get("password")
+
+        if User.objects.filter(username=username).exists():
             user = User.objects.filter(username=username).first()
             if password == user.password:
                 payload = {
-                    'id':user.custom_id,
-                    "exp":datetime.datetime.utcnow()+datetime.timedelta(minutes=60),
-                    'iat':datetime.datetime.utcnow(),
+                    'id': user.custom_id,
+                    "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
+                    'iat': datetime.datetime.utcnow(),
                 }
-                token = jwt.encode(payload,SECRET_KEY,algorithm='HS256')
+                token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
 
-                response = JsonResponse({"message":"success"})
-
-                response.set_cookie('token', token,max_age= 3600)
+                response = JsonResponse({"message": "success"})
+                response.set_cookie('token', token, max_age=3600)
                 return response
             else:
-                return JsonResponse({"error":"wrong password"})
+                return JsonResponse({"error": "wrong password"})
         else:
-            response  = JsonResponse({"error":"user doesn't exist"})
-            return response
+            return JsonResponse({"error": "user doesn't exist"})
         
 @csrf_exempt
 def check_auth(request:HttpRequest):
@@ -63,3 +65,12 @@ def check_auth(request:HttpRequest):
             return JsonResponse({"success":"user auth"})
         except:
             return JsonResponse({"error":"user unauth"})
+
+def verify_token(token):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=['HS256'])
+        return payload  # Return the payload if verification is successful
+    except jwt.ExpiredSignatureError:
+        return JsonResponse({"error": "Token has expired"}, status=401)
+    except jwt.InvalidTokenError:
+        return JsonResponse({"error": "Invalid token"}, status=401)

@@ -2,8 +2,8 @@ from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from .models import Blog
-from .serializers import BlogSerializer
+from  .models  import Blog
+from  .serializers  import BlogSerializer
 
 @api_view(['GET', 'POST'])
 @permission_classes([IsAuthenticated])
@@ -25,14 +25,14 @@ def blog_list(request):
 def blog_detail(request, pk):
     try:
         blog = Blog.objects.get(pk=pk)
-    except Blog.DoesNotExist:
+    except Blog.DoesNotExist: 
         return Response(status=status.HTTP_404_NOT_FOUND)
 
     if request.method == 'GET':
         serializer = BlogSerializer(blog)
         return Response(serializer.data)
 
-    elif request.method == 'PUT':
+    elif request.method == 'PUT': 
         if blog.author != request.user:
             return Response(status=status.HTTP_403_FORBIDDEN)
         serializer = BlogSerializer(blog, data=request.data)
