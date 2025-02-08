@@ -18,14 +18,26 @@ def signup(request):
         username = data.get('username')
         email = data.get('email')
         password = data.get('password')
-        if User.objects.filter(username = username).exists():
-            return JsonResponse({"error":"username should be unique"})
-        if User.objects.filter(email = email).exists():
-            return JsonResponse({"error":"email should be unique"})
+        
+        if User.objects.filter(username=username).exists():
+            return JsonResponse({"error": "username should be unique"})
+        if User.objects.filter(email=email).exists():
+            return JsonResponse({"error": "email should be unique"})
     
-        user = User(username = username,email  = email,password = password)
+        user = User(username=username, email=email, password=password)
         user.save()
-        return JsonResponse({"message":"success"})
+
+        # Generate token after user creation
+        payload = {
+            'id': user.custom_id,  # Assuming you have a custom_id field
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(minutes=60),
+            'iat': datetime.datetime.utcnow(),
+        }
+        token = jwt.encode(payload, SECRET_KEY, algorithm='HS256')
+
+        response = JsonResponse({"message": "success", "token": token})
+        response.set_cookie('token', token, max_age=3600)  # Set the token in a cookie
+        return response
 
 @csrf_exempt
 def login(request: HttpRequest):
@@ -74,3 +86,10 @@ def verify_token(token):
         return JsonResponse({"error": "Token has expired"}, status=401)
     except jwt.InvalidTokenError:
         return JsonResponse({"error": "Invalid token"}, status=401)
+
+@csrf_exempt
+def logout(request: HttpRequest):
+    if request.method == "POST":
+        response = JsonResponse({"message": "success"})
+        response.delete_cookie('token')  # Delete the token cookie
+        return response
